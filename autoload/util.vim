@@ -78,7 +78,7 @@ endfunction
 
 function! util#JumpToLocation(file, line, col)
     if expand("%:p") != a:file
-        execute ":e! " . a:file
+        execute ":sp " . a:file
     endif
     execute ":" . a:line
     execute ":norm " . (a:col) . "|"
