@@ -23,10 +23,10 @@
 # ============================================================================
 
 import tempfile
-import subprocess
+import pexpect
+
 from .base import Base
 
-SUPER_KEY = ' super('
 TYPES = {
     'skProc': ['p', 'Function'],
     'skTemplate': ['t', 'Template'],
@@ -96,7 +96,7 @@ class Source(Base):
                     97 <= val <= 122 or
                     val == 95):
                 return len(context['input']) - idx
-        return 0
+        return len(context['input']) - len(context['input']).lstrip()
 
     def gather_candidates(self, context):
         #  bufpath  => filepath
@@ -117,26 +117,26 @@ class Source(Base):
         _, line, col, _ = context['position']
         proc = self.procs.get(context['bufpath'], None)
         if proc is None:
-            proc = subprocess.Popen([
-                    'nimsuggest', '--threads:on',
-                    '--colors:off', '--compileOnly', '--experimental', '--v2',
-                    '--stdin', context['bufpath']], stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE)
-            self.procs['bufpath'] = proc
+            proc = pexpect.spawnu('nimsuggest --colors:off --stdin --refresh '
+                + context['bufpath'])
+            proc.expect('> ')
+            self.procs[context['bufpath']] = proc
         with tempfile.NamedTemporaryFile() as tmp_file:
             self.vim.command('silent write! ' + tmp_file.name)
-            query = 'sug %s;%s:%i:%i' % (
-                context['bufpath'], tmp_file.name, line, col)
-            res, _ = proc.communicate(bytes(query, 'utf-8'))
+            query = 'sug %s;%s:%i:%i\r' % (
+                context['bufpath'], tmp_file.name, line, col - 1)
+            proc.send(query)
+            proc.expect('\r\n\r\n> ')
+            res = proc.before
             lines = [
-                self.parse(x) for x in res.split(b'\n')
-                if x.startswith(b'sug\t')]
+                self.parse(x) for x in res.split('\n')
+                if x.startswith('sug\t')]
             lines.sort(
                 key=lambda x: SORT_KEYS.get(x['kind'].split(' ')[0], 100))
         return lines
 
     def parse(self, line):
-        data = [x.decode('utf-8') for x in line.split(b'\t')]
+        data = [x for x in line.split('\t')]
         path = data[2].split('.')
         details = self.get_signature(data[3])
         return {
