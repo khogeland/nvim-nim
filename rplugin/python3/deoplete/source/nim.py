@@ -86,6 +86,14 @@ class Source(Base):
     def on_event(self, context):
         pass
 
+    def on_init(self, context):
+        proc = self.procs.get(context['bufpath'], None)
+        if proc is None:
+            proc = pexpect.spawnu('nimsuggest --colors:off --stdin --refresh '
+                + context['bufpath'])
+            self.procs[context['bufpath']] = proc
+            proc.expect('> ')
+
     def get_complete_position(self, context):
         if len(context['input']) < 2:
             return 0
@@ -96,7 +104,7 @@ class Source(Base):
                     97 <= val <= 122 or
                     val == 95):
                 return len(context['input']) - idx
-        return len(context['input']) - len(context['input']).lstrip()
+        return len(context['input']) - len(context['input'].lstrip())
 
     def gather_candidates(self, context):
         #  bufpath  => filepath
@@ -115,24 +123,24 @@ class Source(Base):
 
     def get_nim_completions(self, context):
         _, line, col, _ = context['position']
-        proc = self.procs.get(context['bufpath'], None)
-        if proc is None:
-            proc = pexpect.spawnu('nimsuggest --colors:off --stdin --refresh '
-                + context['bufpath'])
-            proc.expect('> ')
-            self.procs[context['bufpath']] = proc
-        with tempfile.NamedTemporaryFile() as tmp_file:
-            self.vim.command('silent write! ' + tmp_file.name)
-            query = 'sug %s;%s:%i:%i\r' % (
-                context['bufpath'], tmp_file.name, line, col - 1)
-            proc.send(query)
-            proc.expect('\r\n\r\n> ')
-            res = proc.before
-            lines = [
-                self.parse(x) for x in res.split('\n')
-                if x.startswith('sug\t')]
-            lines.sort(
-                key=lambda x: SORT_KEYS.get(x['kind'].split(' ')[0], 100))
+        proc = self.procs.get(context['bufpath'])
+        try:
+            with tempfile.NamedTemporaryFile() as tmp_file:
+                self.vim.command('silent write! ' + tmp_file.name)
+                query = 'sug %s;%s:%i:%i\r' % (
+                    context['bufpath'], tmp_file.name, line, col - 1)
+                proc.send(query)
+                proc.expect('\r\n\r\n> ')
+                res = proc.before
+                lines = [
+                    self.parse(x) for x in res.split('\n')
+                    if x.startswith('sug\t')]
+                lines.sort(
+                    key=lambda x: SORT_KEYS.get(x['kind'].split(' ')[0], 100))
+        except Exception:
+            # Sometimes the nimsuggest process crashes
+            self.procs.pop(context['bufpath'], None)
+            return self.get_nim_completions(context)
         return lines
 
     def parse(self, line):
