@@ -87,12 +87,17 @@ class Source(Base):
         pass
 
     def on_init(self, context):
+        if context['filetype'] != 'nim':
+            return
         proc = self.procs.get(context['bufpath'], None)
         if proc is None:
             proc = pexpect.spawnu('nimsuggest --colors:off --stdin --refresh '
                 + context['bufpath'])
             self.procs[context['bufpath']] = proc
-            proc.expect('> ')
+            try:
+                proc.expect('> ')
+            except Exception:
+                return
 
     def get_complete_position(self, context):
         if len(context['input']) < 2:
@@ -124,6 +129,8 @@ class Source(Base):
     def get_nim_completions(self, context):
         _, line, col, _ = context['position']
         proc = self.procs.get(context['bufpath'])
+        if not proc:
+            return []
         try:
             with tempfile.NamedTemporaryFile() as tmp_file:
                 self.vim.command('silent write! ' + tmp_file.name)
