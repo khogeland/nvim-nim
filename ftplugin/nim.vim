@@ -57,7 +57,7 @@ if g:nvim_nim_enable_custom_textobjects == 1
 endif
 
 augroup nvim_nim_highlighter
-    autocmd! BufReadPost,BufWritePost,CursorHold,InsertLeave,TextChanged,InsertEnter *.nim call highlighter#guard()
+    autocmd! BufReadPost,BufWritePost,InsertLeave,TextChanged,InsertEnter *.nim call highlighter#guard()
 augroup END
 
 augroup nvim_nim_outline

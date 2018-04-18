@@ -23,7 +23,10 @@
 # ============================================================================
 
 import tempfile
-import pexpect
+try:
+    import pexpect
+except ImportError:
+    pexpect = None
 
 from .base import Base
 
@@ -82,12 +85,19 @@ class Source(Base):
         self.min_pattern_length = 0
         self.rank = 1000
         self.procs = {}
+        self.disabled = False
 
     def on_event(self, context):
         pass
 
     def on_init(self, context):
         if context['filetype'] != 'nim':
+            return
+        if pexpect is None:
+            self.disabled = True
+            self.vim.command('echoerr "pexpect must be installed for '
+                'deoplete completion to work (pip install pexpect)"')
+        if self.disabled:
             return
         proc = self.procs.get(context['bufpath'], None)
         if proc is None:

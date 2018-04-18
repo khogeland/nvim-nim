@@ -116,5 +116,19 @@ au BufNewFile,BufRead *.nim setlocal filetype=nim
 au BufNewFile,BufRead *.nims setlocal filetype=nims
 au BufNewFile,BufRead *.nimble setlocal filetype=nims
 
+function! NimHighlighterMatch(key, positions)  " {{{
+    let groups = []
+    for vals in a:positions
+        call add(groups, matchaddpos(a:key, [vals]))
+    endfor
+    return groups
+endfunction  " }}}
+
+function! NimHighlighterUnmatch(keys)  " {{{
+    for key in a:keys
+        call matchdelete(key)
+    endfor
+endfunction  " }}}
+
 let &cpo = s:save_cpo
 unlet s:save_cpo
