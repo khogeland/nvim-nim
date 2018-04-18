@@ -100,15 +100,19 @@ class Source(Base):
         if self.disabled:
             return
         proc = self.procs.get(context['bufpath'], None)
-        max_val = str(self.vim.eval('g:nvim_nim_deoplete_limit'))
         if proc is None:
-            proc = pexpect.spawnu('nimsuggest --colors:off --stdin --refresh '
-                + '--maxresults:' + max_val + ' ' + context['bufpath'])
-            self.procs[context['bufpath']] = proc
-            try:
-                proc.expect('> ')
-            except Exception:
-                return
+            self.new_proc(context)
+
+    def new_proc(self, context):
+        max_val = str(self.vim.eval('g:nvim_nim_deoplete_limit'))
+        proc = pexpect.spawnu('nimsuggest --colors:off --stdin --refresh '
+            + '--maxresults:' + max_val + ' ' + context['bufpath'])
+        self.procs[context['bufpath']] = proc
+        try:
+            proc.expect('> ')
+            return proc
+        except Exception:
+            self.vim.command('echoerr "Error trying to start nimsuggest"')
 
     def get_complete_position(self, context):
         if len(context['input']) < 2:
@@ -141,7 +145,7 @@ class Source(Base):
         _, line, col, _ = context['position']
         proc = self.procs.get(context['bufpath'])
         if not proc:
-            return []
+            proc = self.new_proc(context)
         try:
             with tempfile.NamedTemporaryFile() as tmp_file:
                 self.vim.command('silent write! ' + tmp_file.name)
@@ -157,6 +161,7 @@ class Source(Base):
                     key=lambda x: SORT_KEYS.get(x['kind'].split(' ')[0], 100))
         except Exception:
             # Sometimes the nimsuggest process crashes
+            raise
             self.procs.pop(context['bufpath'], None)
             return self.get_nim_completions(context)
         return lines
