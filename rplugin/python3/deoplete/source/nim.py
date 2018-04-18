@@ -100,9 +100,10 @@ class Source(Base):
         if self.disabled:
             return
         proc = self.procs.get(context['bufpath'], None)
+        max_val = str(self.vim.eval('g:nvim_nim_deoplete_limit'))
         if proc is None:
             proc = pexpect.spawnu('nimsuggest --colors:off --stdin --refresh '
-                + context['bufpath'])
+                + '--maxresults:' + max_val + ' ' + context['bufpath'])
             self.procs[context['bufpath']] = proc
             try:
                 proc.expect('> ')

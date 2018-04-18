@@ -101,6 +101,14 @@ if !exists("g:nvim_nim_highlighter_enable")
     let g:nvim_nim_highlighter_enable = 0
 endif
 
+if !exists("g:nvim_nim_highlighter_async")
+    let g:nvim_nim_highlighter_async = 0
+endif
+
+if !exists("g:nvim_nim_deoplete_limit")
+    let g:nvim_nim_deoplete_limit = 100
+endif
+
 if !exists("g:nvim_nim_highlight_builtin")
     let g:nvim_nim_highlight_builtin = 1
 endif
