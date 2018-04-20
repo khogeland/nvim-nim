@@ -86,13 +86,12 @@ class Source(Base):
         self.rank = 1000
         self.procs = {}
         self.disabled = False
+        self.filetypes = ['nim', 'nims', 'nimble']
 
     def on_event(self, context):
         pass
 
     def on_init(self, context):
-        if context['filetype'] != 'nim':
-            return
         if pexpect is None:
             self.disabled = True
             self.vim.command('echoerr "pexpect must be installed for '
@@ -161,7 +160,6 @@ class Source(Base):
                     key=lambda x: SORT_KEYS.get(x['kind'].split(' ')[0], 100))
         except Exception:
             # Sometimes the nimsuggest process crashes
-            raise
             self.procs.pop(context['bufpath'], None)
             return self.get_nim_completions(context)
         return lines

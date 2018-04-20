@@ -49,22 +49,31 @@ class Main(object):
         self.to_run = set()
         self.disabled = False
 
-    def get_proc(self, bufpath):
-        proc = self.procs.get(bufpath, None)
+    def new_proc(self, bufpath):
+        proc = pexpect.spawnu('nimsuggest --colors:off --stdin --refresh '
+            + bufpath)
+        self.procs[bufpath] = proc
+        try:
+            proc.expect('> ')
+            return proc
+        except Exception:
+            self.vim.command('echoerr "Error trying to start nimsuggest"')
+
+    def on_init(self, context):
+        if pexpect is None:
+            self.disabled = True
+            self.vim.command('echoerr "pexpect must be installed for '
+                'deoplete completion to work (pip install pexpect)"')
+        if self.disabled:
+            return
+        proc = self.procs.get(context['bufpath'], None)
         if proc is None:
-            proc = pexpect.spawnu('nimsuggest --colors:off --stdin --refresh '
-                + bufpath)
-            self.procs[bufpath] = proc
-            try:
-                proc.expect('> ')
-            except Exception:
-                return
-        return proc
+            self.new_proc(context['bufpath'])
 
     def get_lines(self, bufpath):
-        proc = self.get_proc(bufpath)
+        proc = self.procs.get(bufpath)
         if not proc:
-            self.get_lines(bufpath)
+            proc = self.new_proc(bufpath)
         try:
             with tempfile.NamedTemporaryFile() as tmp_file:
                 self.vim.command('silent write! ' + tmp_file.name)

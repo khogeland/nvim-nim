@@ -65,6 +65,6 @@ augroup nvim_nim_outline
     autocmd! VimResized,WinEnter *.nim call features#outline#render()
 augroup END
 
-if g:nvim_nim_highlighter_enable
+if g:nvim_nim_highlighter_enable || g:nvim_nim_highlighter_async
     call highlighter#guard()
 endif
