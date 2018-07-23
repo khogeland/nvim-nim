@@ -130,13 +130,14 @@ endfunction
 
 
 function! highlighter#guard()
-    if g:nvim_nim_highlighter_enable
+    if g:nvim_nim_highlighter_async
+        call NimHighlight()
+    elseif g:nvim_nim_highlighter_enable
         if line("$") + 0 < 500
             call highlighter#New()
         endif
     endif
 endfunction
-
 
 let &cpo = s:save_cpo
 unlet s:save_cpo
